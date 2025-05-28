@@ -1,0 +1,111 @@
+{% extends "network/layout.html" %}
+
+{% block body %}
+    <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function likeEdit(buttonElement) {
+            const postId = buttonElement.getAttribute('data-post-id');
+            const icon = buttonElement.querySelector('i');
+            const likeCountDiv = document.getElementById(`like-${postId}`);
+
+            fetch(`/like/${postId}`, {
+                method: 'GET'
+            })
+            .then(response => {
+                if (!response.ok) throw new Error("Server error");
+                return response.json();
+            })
+            .then(result => {
+                if (result.done === 'true') {
+                    icon.className = 'fas fa-heart text-danger';
+                } else {
+                    icon.className = 'far fa-heart text-secondary';
+                }
+                likeCountDiv.innerHTML = result.like;
+            })
+            .catch(error => {
+                console.error("Error in likeHandler:", error);
+            });
+        }
+    </script>
+
+    <div class="container mt-4">
+        <h1 class="mb-4 text-center">
+            <i class="fas fa-user-friends text-primary mr-2"></i>
+            Posts from Users You're Following
+        </h1>
+
+        <!-- Post list -->
+        {% for post in posts %}
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body">
+                    <!-- Author and Timestamp -->
+                    <div class="d-flex justify-content-between mb-2">
+                        <div class="text-muted">
+                            Posted by <a href="{% url 'profile' post.author.id %}"><strong>{{ post.author.username }}</strong></a>
+                        </div>
+                        <div class="text-muted small">{{ post.timestamp }}</div>
+                    </div>
+
+                    <!-- Post Content -->
+                    <p class="card-text" id="post-content-{{ post.id }}">{{ post.content }}</p>
+
+                    <!-- Like Section -->
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        {% if user.is_authenticated %}
+                            <button class="btn btn-link p-0" onclick="likeEdit(this)" data-post-id="{{ post.id }}">
+                                {% if post.id in likes %}
+                                    <i class="fas fa-heart text-danger"></i>
+                                {% else %}
+                                    <i class="far fa-heart text-secondary"></i>
+                                {% endif %}
+                            </button>
+                        {% endif %}
+                        <div class="text-muted small" id="like-{{ post.id }}">
+                            {{ post.likes.count }} like{{ post.likes.count|pluralize }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="alert alert-info text-center">
+                You are not following anyone or no posts are available.
+            </div>
+        {% endfor %}
+
+        <!-- Pagination -->
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if posts.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ posts.previous_page_number }}">Previous</a>
+                    </li>
+                {% endif %}
+
+                <li class="page-item disabled">
+                    <span class="page-link">Page {{ posts.number }} of {{ posts.paginator.post_num }}</span>
+                </li>
+
+                {% if posts.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ posts.next_page_number }}">Next</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+{% endblock %}

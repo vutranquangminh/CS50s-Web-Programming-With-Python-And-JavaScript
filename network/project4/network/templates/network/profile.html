@@ -1,0 +1,205 @@
+{% extends "network/layout.html" %}
+
+{% block body %}
+    <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function likeEdit(buttonElement) {
+            const postId = buttonElement.getAttribute('data-post-id');
+            const icon = buttonElement.querySelector('i');
+            const likeCountDiv = document.getElementById(`like-${postId}`);
+
+            fetch(`/like/${postId}`, {
+                method: 'GET'
+            })
+            .then(response => {
+                if (!response.ok) throw new Error("Server error");
+                return response.json();
+            })
+            .then(result => {
+                if (result.done === 'true') {
+                    icon.className = 'fas fa-heart text-danger';
+                } else {
+                    icon.className = 'far fa-heart text-secondary';
+                }
+                likeCountDiv.innerHTML = result.like;
+            })
+            .catch(error => {
+                console.error("Error in likeHandler:", error);
+            });
+        }
+
+        function postEdit(buttonElement) {
+            const postId = buttonElement.getAttribute('data-post-id');
+            console.log(`Sending edit request for post ${postId}`);
+            const editContent = document.getElementById(`editContent-${postId}`).value;
+            const postContentDiv = document.getElementById(`post-content-${postId}`);
+
+            fetch(`/post/${postId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    content: editContent
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.done === 'true') {
+                    postContentDiv.innerHTML = editContent;
+                    $(`#editModal-${postId}`).modal('hide');
+                }
+            })
+            .catch(error => {
+                console.error("Error updating post:", error);
+            });
+        }
+    </script>
+
+    <div class="container mt-4">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-2 text-center">
+                        <i class="fas fa-user-circle fa-5x text-secondary"></i>
+                    </div>
+                    <div class="col-md-10 d-flex justify-content-between align-items-center">
+                        <div>
+                            <h3 class="mb-1">{{ profile_user.username }}</h3>
+                            <p class="text-muted mb-0">User Profile</p>
+                        </div>
+
+                        {% if user.is_authenticated and profile_user != request.user %}
+                        <form action="{% url 'profile' profile_user.id %}" method="POST">
+                            {% csrf_token %}
+                            <button type="submit"
+                            class="btn {% if isFollow %}btn-outline-danger{% else %}btn-outline-primary{% endif %}" >
+                                {% if isFollow %}Unfollow{% else %}Follow{% endif %}
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="row text-center mt-3">
+                    <div class="col">
+                        <h5 class="mb-0">{{ following }}</h5>
+                        <small class="text-muted">Following</small>
+                    </div>
+                    <div class="col">
+                        <h5 class="mb-0">{{ follower }}</h5>
+                        <small class="text-muted">Followers</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+    <!-- Post list -->
+    {% for post in posts %}
+            <div class="card mb-3 shadow-sm">
+                <div class="card-body">
+                    <!-- Row: Author and Timestamp -->
+                    <div class="d-flex justify-content-between mb-2">
+                        <div class="text-muted">
+                            Posted by <a  href="{% url 'profile' post.author.id %}"><strong>{{ post.author.username }}</strong></a>
+                        </div>
+                        <div class="text-muted small">
+                            {{ post.timestamp }}
+                        </div>
+                    </div>
+
+                    <!-- Row: Content and Edit Button -->
+                    <div class="d-flex justify-content-between align-items-center">
+                        <p class="card-text mb-0" id="post-content-{{ post.id }}">{{ post.content }}</p>
+
+                        {% if user.is_authenticated and user == post.author %}
+                            <!-- Button trigger modal -->
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-toggle="modal" data-target="#editModal-{{ post.id }}">
+                                Edit
+                            </button>
+
+                            <!-- Modal -->
+                            <div class="modal fade" id="editModal-{{ post.id }}" tabindex="-1" role="dialog" aria-labelledby="editModalLabel-{{ post.id }}" aria-hidden="true">
+                                <div class="modal-dialog" role="document">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="editModalLabel-{{ post.id }}">Edit Post</h5>
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                <span aria-hidden="true">&times;</span>
+                                            </button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <textarea class="form-control" id="editContent-{{ post.id }}" rows="4">{{ post.content }}</textarea>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                            <button type="button" class="btn btn-primary" onclick="postEdit(this)" data-post-id="{{ post.id }}">
+                                                Save Changes
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Row: Like -->
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        {% if user.is_authenticated %}
+                            <button class="btn btn-link p-0" onclick="likeEdit(this)" data-post-id="{{ post.id }}">
+                                {% if post.id in likes %}
+                                    <i class="fas fa-heart text-danger"></i>
+                                {% else %}
+                                    <i class="far fa-heart text-secondary"></i>
+                                {% endif %}
+                            </button>
+                        {% endif %}
+                        <div class="text-muted small" id="like-{{ post.id }}">
+                            {{ post.likes.count }} like{{ post.likes.count|pluralize }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <p>No posts to show.</p>
+        {% endfor %}
+
+        <!-- Pagination -->
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if posts.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ posts.previous_page_number }}">Previous</a>
+                    </li>
+                {% endif %}
+
+                <li class="page-item disabled">
+                    <span class="page-link">Page {{ posts.number }} of {{ posts.paginator.post_num }}</span>
+                </li>
+
+                {% if posts.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ posts.next_page_number }}">Next</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+{% endblock %}
