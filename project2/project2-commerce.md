@@ -100,3 +100,5 @@ Full spec: [CS50W Project 2 Specification](https://cs50.harvard.edu/web/2020/pro
 ---
 
 > _This project was a solid introduction to relational data modeling and feature-driven development in Django. It helped reinforce core concepts in web architecture, user logic, and form handling._
+
+---
