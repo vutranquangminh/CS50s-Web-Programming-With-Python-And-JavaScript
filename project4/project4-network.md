@@ -96,3 +96,5 @@ Full spec: [CS50W Project 4 Specification](https://cs50.harvard.edu/web/2020/pro
 ---
 
 > _This project is part of my journey in mastering full-stack web development. Feel free to explore the code and reach out with feedback or suggestions!_
+
+---
