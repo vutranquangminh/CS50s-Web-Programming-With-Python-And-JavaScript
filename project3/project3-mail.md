@@ -93,3 +93,5 @@ Full spec: [CS50W Project 3 Specification](https://cs50.harvard.edu/web/2020/pro
 ---
 
 > _This project was a deep dive into SPA design, DOM control, and client-server communication — a great foundation for future front-end development projects!_
+
+---
