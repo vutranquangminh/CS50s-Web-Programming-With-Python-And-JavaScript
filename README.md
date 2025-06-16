@@ -80,3 +80,4 @@ Each project reinforced a specific part of the development stack:
 
 > _This repository reflects my journey and achievements in the CS50W course. It demonstrates not only technical skills, but also a commitment to continuous learning and hands-on development._
 
+---
